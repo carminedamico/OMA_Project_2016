@@ -47,6 +47,7 @@ int main(int argc,char *argv[]){
         _heuristic.writeKPI(_outPath, instanceName, stat);
         //
         cout << _inPath << ": \n";
+        cout << "\tTIME: " << stat[1] << "\n";
         cout << "\tSOLUTION FOUNDED: " << stat[0] << "\n";
         cout << "\tBEST SOLUTION: " << _heuristic.bestSolution[0] << "\n";
         cout << "\tGAP: " << (double) ((stat[0] * 100) /  _heuristic.bestSolution[0]) - 100<< "%\n";
