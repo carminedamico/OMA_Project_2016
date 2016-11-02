@@ -45,6 +45,18 @@ int main(int argc,char *argv[]){
 		// Write KPI of solution
         string instanceName = splitpath(_inPath);
         _heuristic.writeKPI(_outPath, instanceName, stat);
+        //
+        cout << _inPath << ": \n";
+        cout << "\tSOLUTION FOUNDED: " << stat[0] << "\n";
+        cout << "\tBEST SOLUTION: " << _heuristic.bestSolution[0] << "\n";
+        cout << "\tGAP: " << (double) ((stat[0] * 100) /  _heuristic.bestSolution[0]) - 100<< "%\n";
+        for (int i = 2; i < stat.size(); i++) {
+            int x = _heuristic.bestSolution[i - 1] - stat[i];
+            if (x > 0) {
+                cout << "\t+";
+            } else cout << "\t";
+            cout << x << " USERS OF TYPE " << i-1 << " USED\n";
+        }
 		// Write solution
 		if(!_solPath.empty())
 			_heuristic.writeSolution(_solPath);
