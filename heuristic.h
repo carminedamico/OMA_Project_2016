@@ -46,6 +46,18 @@ private:
     bool hasSolution;
     double epsilon;
     int**** solution;
+    struct move {
+        int i;
+        int j;
+        int m;
+        int t;
+        int n;
+        int* agents;
+        double cost;
+        double partial_ObjFunc;
+    };
+    move* moves;
+    int feasibleMoves;
 
 public:
     /**
@@ -63,15 +75,10 @@ public:
     Heuristic(string path);
 
     // stat contiene tempo in posizione 0 e objfunction in posizione 1
-    void solveFast(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
 
     void solveGreedy(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
 
-    //int countCombination(int pos, int sol[], int set[], int k, int count, int** combination, int *n);
-
-    //void solveSlowly(int pos, int k, int ** combination, float *bestobj);
-
-    //void solveOptimally(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void randomMutation();
 
     void getStatSolution(vector<double>& stat);
 

@@ -104,6 +104,37 @@ Heuristic::Heuristic(string path){
         }
     }
 
+    moves = new move[nCells*nCells*nTimeSteps*nCustomerTypes];
+
+    clock_t tStart = clock();
+
+    for (int i = 0; i < this->nCells; i++) {
+        if (problem.activities[i] > 0) {
+            for (int j = 0; j < this->nCells; j++) {
+                if (i != j) {
+                    for (int m = 0; m < this->nCustomerTypes; m++) {
+                        for (int t = 0; t < this->nTimeSteps; t++) {
+                            if (problem.usersCell[j][m][t] > 0) {
+                                move tmp;
+                                tmp.i = i;
+                                tmp.j = j;
+                                tmp.m = m;
+                                tmp.t = t;
+                                tmp.n = problem.usersCell[j][m][t];
+                                tmp.cost = problem.costs[i][j][m][t];
+                                tmp.partial_ObjFunc = 0;
+                                tmp.agents = new int[problem.usersCell[j][m][t]];
+                                for (int k = 0; k < problem.usersCell[j][m][t]; k++) {
+                                    tmp.agents[k] = 0;
+                                }
+                                moves[feasibleMoves++] = tmp;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     string best_path = "./Optimal_Solutions.csv";
 
@@ -132,53 +163,6 @@ Heuristic::Heuristic(string path){
 
 }
 
-void Heuristic::solveFast(vector<double>& stat, int timeLimit,  bool verbose) {
-    double objFun=0;
-    clock_t tStart = clock();
-
-    for (int i = 0; i < nCells; i++)
-        for (int j = 0; j < nCells; j++)
-            for (int m = 0; m < nCustomerTypes; m++)
-                for (int t = 0; t < nTimeSteps; t++)
-                    solution[i][j][m][t] = 0;
-
-
-    for (int i = 0; i < nCells; i++) {
-        int domanda = problem.activities[i];
-
-        bool nonSoddisfatta = true;
-        for (int j = 0; j < nCells && nonSoddisfatta; j++) {
-            for (int m = 0; m < nCustomerTypes && nonSoddisfatta; m++) {
-                for (int t = 0; t < nTimeSteps && nonSoddisfatta; t++) {
-                    if (i != j) {
-                        if (domanda > problem.n[m] * problem.usersCell[j][m][t]) {
-                            solution[i][j][m][t] = problem.usersCell[j][m][t];
-                            problem.usersCell[j][m][t] -= solution[i][j][m][t];
-                        }
-                        else {
-                            if ((domanda%problem.n[m]) == 0) {
-                                solution[i][j][m][t] += floor(domanda / problem.n[m]);
-                            } else solution[i][j][m][t] += floor(domanda / problem.n[m]) + 1;
-                            problem.usersCell[j][m][t] -= solution[i][j][m][t];
-                            nonSoddisfatta = false;
-                        }
-                        if (solution[i][j][m][t] != 0) {
-                            objFun += solution[i][j][m][t] * problem.costs[i][j][m][t];
-                        }
-                        domanda -= problem.n[m]*solution[i][j][m][t];
-                    }
-                }
-            }
-        }
-    }
-
-
-    stat.push_back(objFun);
-    stat.push_back(((clock() - tStart) / (double) CLOCKS_PER_SEC ));
-
-    hasSolution=true;
-
-}
 
 void Heuristic::solveGreedy(vector<double>& stat, int timeLimit,  bool verbose) {
     double objFun=0;
@@ -236,6 +220,29 @@ void Heuristic::solveGreedy(vector<double>& stat, int timeLimit,  bool verbose) 
     hasSolution=true;
 
 }
+
+void Heuristic::randomMutation() {
+    clock_t tStart = clock();
+    double obj;
+
+    for (int i = 0; i < feasibleMoves; ++i) {
+        for (int j = 0; j < moves[i].n; j++) {
+            moves[i].agents[j] = rand() % 2;
+            if (moves[i].agents[j] == 1) moves[i].partial_ObjFunc += moves[i].cost;
+        }
+        /*cout << moves[i].i << " " << moves[i].j << " " << moves[i].m << " " << moves[i].t << " ";
+        for (int k = 0; k < moves[i].n; k++) {
+            cout << moves[i].agents[k];
+        }
+        cout << " \n";*/
+        obj += moves[i].partial_ObjFunc;
+    }
+    //cout << ((clock() - tStart) / (double) CLOCKS_PER_SEC );
+    cout << obj;
+}
+
+
+
 
 /*int Heuristic::countCombination(int pos, int sol[], int set[], int k, int count, int** combination, int *n ) {
 
