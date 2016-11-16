@@ -5,6 +5,8 @@
 #include <iostream>
 #include <random>
 #include "heuristic.h"
+#include <algorithm>
+#include <time.h>
 
 using namespace std;
 
@@ -184,6 +186,7 @@ void Heuristic::solveGreedy(vector<double>& stat, int timeLimit,  bool verbose) 
     double objFun=0;
     clock_t tStart = clock();
 
+
     for (int i = 0; i < nCells; i++)
         for (int j = 0; j < nCells; j++)
             for (int m = 0; m < nCustomerTypes; m++)
@@ -197,9 +200,10 @@ void Heuristic::solveGreedy(vector<double>& stat, int timeLimit,  bool verbose) 
                 double bestRatio = 9999999;
                 int bestj, bestm, bestt;
                 for (int j = 0; j < nCells && (domanda > 0); j++) {
-                    for (int m = 0; m < nCustomerTypes && (domanda > 0); m++) {
+                    for (int m = 0; m < nCustomerTypes &&  (domanda > 0); m++) {
+                        if (domanda < problem.n[m]) break;
                         for (int t = 0; t < nTimeSteps && (domanda > 0); t++) {
-                            if ((i != j) && (problem.usersCell[j][m][t]!=0)) {
+                            if ((i != j) && (problem.usersCell[j][m][t] !=0 )) {
                                 double ratio = problem.costs[i][j][m][t] / problem.n[m];
                                 if (ratio < bestRatio) {
                                     bestRatio = ratio;
@@ -216,27 +220,22 @@ void Heuristic::solveGreedy(vector<double>& stat, int timeLimit,  bool verbose) 
                     problem.usersCell[bestj][bestm][bestt] -= solution[i][bestj][bestm][bestt];
                 }
                 else {
-                    if ((domanda%problem.n[bestm]) == 0) {
-                        solution[i][bestj][bestm][bestt] += floor(domanda / problem.n[bestm]);
-                    } else solution[i][bestj][bestm][bestt] += floor(domanda / problem.n[bestm]) + 1;
+                    solution[i][bestj][bestm][bestt] += floor(domanda / problem.n[bestm]) ;
                     problem.usersCell[bestj][bestm][bestt] -= solution[i][bestj][bestm][bestt];
                 }
+
                 if (solution[i][bestj][bestm][bestt] != 0) {
                     objFun += solution[i][bestj][bestm][bestt] * problem.costs[i][bestj][bestm][bestt];
                 }
                 domanda -= problem.n[bestm]*solution[i][bestj][bestm][bestt];
             }
-
         }
     }
 
     stat.push_back(objFun);
     stat.push_back(((clock() - tStart) / (double) CLOCKS_PER_SEC ));
-
     hasSolution=true;
-
 }
-
 /*int Heuristic::countCombination(int pos, int sol[], int set[], int k, int count, int** combination, int *n ) {
 
     if (pos >= k) {
@@ -434,7 +433,8 @@ eFeasibleState Heuristic::isFeasible(string path) {
                 for (int t = 0; t < nTimeSteps; t++)
                     expr += problem.n[m] * solutionN[j][i][m][t];
         if (expr < problem.activities[i])
-            feasible = false;
+            feasible = false; 
+
     }
 
     if (!feasible)
