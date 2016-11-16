@@ -40,7 +40,8 @@ int main(int argc,char *argv[]){
 		Heuristic _heuristic(_inPath);
 		// Solve the problem
 		vector<double> stat;
-		_heuristic.solveGreedy(stat);
+		_heuristic.randomMutation();
+        _heuristic.convertertoSolution(stat);
 		_heuristic.getStatSolution(stat);
 		// Write KPI of solution
         string instanceName = splitpath(_inPath);
