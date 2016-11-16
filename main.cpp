@@ -41,7 +41,8 @@ int main(int argc,char *argv[]){
 		// Solve the problem
 		vector<double> stat;
 		_heuristic.randomMutation();
-		/*_heuristic.getStatSolution(stat);
+        _heuristic.convertertoSolution(stat);
+		_heuristic.getStatSolution(stat);
 		// Write KPI of solution
         string instanceName = splitpath(_inPath);
         _heuristic.writeKPI(_outPath, instanceName, stat);
@@ -57,7 +58,7 @@ int main(int argc,char *argv[]){
                 cout << "\t+";
             } else cout << "\t";
             cout << x << " USERS OF TYPE " << i-1 << " USED\n";
-        }*/
+        }
 		// Write solution
 		if(!_solPath.empty())
 			_heuristic.writeSolution(_solPath);

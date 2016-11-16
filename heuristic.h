@@ -56,7 +56,7 @@ private:
         double cost;
         double partial_ObjFunc;
     };
-    move* moves;
+    vector<move> moves;
     int feasibleMoves;
 
 public:
@@ -76,7 +76,7 @@ public:
 
     // stat contiene tempo in posizione 0 e objfunction in posizione 1
 
-    void solveGreedy(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void convertertoSolution(vector<double>& stat);
 
     void randomMutation();
 
