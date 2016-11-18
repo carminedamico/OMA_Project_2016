@@ -63,9 +63,9 @@ int main(int argc,char *argv[]){
 			_heuristic.writeSolution(_solPath);
 	}
 	else {
-		Heuristic _heuristic = Heuristic();
+		Heuristic _heuristic = Heuristic(_inPath);
 		// Read the solution file
-		eFeasibleState _feasibility = _heuristic.isFeasible(_inPath);
+		eFeasibleState _feasibility = _heuristic.isFeasible(_solPath);
 		switch(_feasibility) {
 			case FEASIBLE:
 				cout << "Solution is feasible" << endl;
