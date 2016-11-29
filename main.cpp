@@ -59,29 +59,27 @@ int main(int argc,char *argv[]){
             cout << x << " USERS OF TYPE " << i-1 << " USED\n";
         }
 		// Write solution
-		if(!_solPath.empty())
+		if(!_solPath.empty()) {
 			_heuristic.writeSolution(_solPath);
-	}
-	else {
-		Heuristic _heuristic = Heuristic(_inPath);
-		// Read the solution file
-		eFeasibleState _feasibility = _heuristic.isFeasible(_solPath);
-		switch(_feasibility) {
-			case FEASIBLE:
-				cout << "Solution is feasible" << endl;
-				break;
-			case NOT_FEASIBLE_DEMAND:
-				cout << "Solution is not feasible: demand not satisfied" << endl;
-				break;
-			case NOT_FEASIBLE_FLOW:
-				cout << "Solution is not feasible: flow constraint not satisfied" << endl;
-				break;
-			case NOT_FEASIBLE_USERS:
-				cout << "Solution is not feasible: exceeded number of available users" << endl;
-				break;
+
+			Heuristic _heuristicX = Heuristic(_inPath);
+			// Read the solution file
+			eFeasibleState _feasibility = _heuristicX.isFeasible(_solPath);
+			switch(_feasibility) {
+				case FEASIBLE:
+					cout << "Solution is feasible" << endl;
+					break;
+				case NOT_FEASIBLE_DEMAND:
+					cout << "Solution is not feasible: demand not satisfied" << endl;
+					break;
+				case NOT_FEASIBLE_FLOW:
+					cout << "Solution is not feasible: flow constraint not satisfied" << endl;
+					break;
+				case NOT_FEASIBLE_USERS:
+					cout << "Solution is not feasible: exceeded number of available users" << endl;
+					break;
+			}
 		}
 	}
-
 	return 0;
 }
-

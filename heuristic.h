@@ -34,6 +34,35 @@ enum eFeasibleState {
     NOT_FEASIBLE_USERS
 };
 
+class Agent {
+public:
+    int j;
+    int m;
+    int t;
+    int n;
+    int todo;
+    Agent(int j, int m, int t, int n) {
+        this->j = j;
+        this->m = m;
+        this->t = t;
+        this->n = n;
+    }
+};
+
+class Cell {
+public:
+    int i;
+    double partialObjFunc;
+    int activities;
+    deque<Agent> usedAgents;
+    Cell(int i, int n) {
+        this->i = i;
+        this->activities = n;
+        this->partialObjFunc = 0;
+    }
+};
+
+
 
 class Heuristic{
 private:
@@ -45,7 +74,7 @@ private:
 
     bool hasSolution;
     double epsilon;
-    int**** solution;
+    vector<Cell> cells;
 
 public:
     /**
@@ -63,15 +92,15 @@ public:
     Heuristic(string path);
 
     // stat contiene tempo in posizione 0 e objfunction in posizione 1
-    void solveFast(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void Metaheuristic(vector<double>& stat);
 
-    void solveGreedy(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void solveGreedy(double *ObjFunc, vector<Cell>* cells);
 
-    //int countCombination(int pos, int sol[], int set[], int k, int count, int** combination, int *n);
+    void gentlemanGreedy(double *ObjFunc, vector<Cell> *cells);
 
-    //void solveSlowly(int pos, int k, int ** combination, float *bestobj);
+    void gentlemanAgreement(double* ObjFunc, vector<Cell>* cells);
 
-    //void solveOptimally(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void gentlemenClub(double* ObjFunc, vector<Cell>* cells, int n);
 
     void getStatSolution(vector<double>& stat);
 

@@ -5,6 +5,17 @@
 #include <iostream>
 #include <random>
 #include "heuristic.h"
+#include <time.h>
+#include <ctime>
+#include <unistd.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+	#include <algorithm>
+	#define initRandSeed SYSTEMTIME st; GetSystemTime(&st); srand(st.wMilliseconds);
+#else
+#define initRandSeed struct timespec spec; clock_gettime(CLOCK_REALTIME,&spec); srand(spec.tv_nsec);
+#endif
 
 using namespace std;
 
@@ -32,17 +43,13 @@ Heuristic::Heuristic(string path){
     this->nCustomerTypes = atoi(word.c_str());
 
     // Memory allocation
-    solution = new int***[nCells];
     problem.costs = new double***[nCells];
     for (int i = 0; i < this->nCells; i++) {
         problem.costs[i] = new double**[nCells];
-        solution[i] = new int**[nCells];
         for (int j = 0; j < this->nCells; j++) {
             problem.costs[i][j] = new double*[nCustomerTypes];
-            solution[i][j] = new int*[nCustomerTypes];
             for (int m = 0; m < this->nCustomerTypes; m++) {
                 problem.costs[i][j][m] = new double[nTimeSteps];
-                solution[i][j][m] = new int[nTimeSteps];
             }
         }
     }
@@ -104,6 +111,12 @@ Heuristic::Heuristic(string path){
         }
     }
 
+    for (int i = 0; i < nCells; i++) {
+       if (problem.activities[i] > 0) {
+           Cell tmpCell = Cell(i, problem.activities[i]);
+           this -> cells.push_back(tmpCell);
+       }
+   }
 
     string best_path = "./Optimal_Solutions.csv";
 
@@ -120,6 +133,7 @@ Heuristic::Heuristic(string path){
         std::replace(line.begin(), line.end(), ';', ' ');
         istringstream isb(line);
         isb >> word;
+        word += '.';
     } while(path.find(word) == string::npos);
 
     istringstream isb(line);
@@ -132,110 +146,300 @@ Heuristic::Heuristic(string path){
 
 }
 
-void Heuristic::solveFast(vector<double>& stat, int timeLimit,  bool verbose) {
-    double objFun=0;
+void Heuristic::Metaheuristic(vector<double>& stat) {
+    double sObjFunc = 0, // initial objective function
+            bestObjFunc = 0; // best objective function
     clock_t tStart = clock();
+    int maxNotImprovingIterations = 30;
 
-    for (int i = 0; i < nCells; i++)
-        for (int j = 0; j < nCells; j++)
-            for (int m = 0; m < nCustomerTypes; m++)
-                for (int t = 0; t < nTimeSteps; t++)
-                    solution[i][j][m][t] = 0;
+    solveGreedy(&sObjFunc, &cells); //some initial solution
 
+    bestObjFunc = sObjFunc;
 
-    for (int i = 0; i < nCells; i++) {
-        int domanda = problem.activities[i];
+    vector<Cell> S(cells), R;
 
-        bool nonSoddisfatta = true;
-        for (int j = 0; j < nCells && nonSoddisfatta; j++) {
-            for (int m = 0; m < nCustomerTypes && nonSoddisfatta; m++) {
-                for (int t = 0; t < nTimeSteps && nonSoddisfatta; t++) {
-                    if (i != j) {
-                        if (domanda > problem.n[m] * problem.usersCell[j][m][t]) {
-                            solution[i][j][m][t] = problem.usersCell[j][m][t];
-                            problem.usersCell[j][m][t] -= solution[i][j][m][t];
-                        }
-                        else {
-                            if ((domanda%problem.n[m]) == 0) {
-                                solution[i][j][m][t] += floor(domanda / problem.n[m]);
-                            } else solution[i][j][m][t] += floor(domanda / problem.n[m]) + 1;
-                            problem.usersCell[j][m][t] -= solution[i][j][m][t];
-                            nonSoddisfatta = false;
-                        }
-                        if (solution[i][j][m][t] != 0) {
-                            objFun += solution[i][j][m][t] * problem.costs[i][j][m][t];
-                        }
-                        domanda -= problem.n[m]*solution[i][j][m][t];
-                    }
-                }
-            }
+    double time = ((clock() - tStart) / (double) CLOCKS_PER_SEC );
+
+    int k = 0;
+    double T = 500;
+    double T0 = T;
+    double alpha = 0.9995;
+    int suboptimalMovements = 0;
+    vector<double> Ttrace;
+
+    while (time < 4.9) {
+        if (++k % 1000 == 0) {
+            Ttrace.push_back(T);
+            //T = T0*pow(alpha,k);
+            T -= T*alpha;
         }
+
+        R.clear();
+        R = S;
+        double rObjFunc = sObjFunc;
+        gentlemanAgreement(&rObjFunc, &R);
+
+        if (rObjFunc < sObjFunc) {
+            S.clear();
+            S = R;
+            sObjFunc = rObjFunc;
+        } else if (rObjFunc > sObjFunc) {
+            double p = exp(-(rObjFunc-sObjFunc)/T);
+            initRandSeed;
+            double r = ((double)(rand() % 10)) / 10.0;
+
+            if (r < p) {
+                S = R;
+                sObjFunc = rObjFunc;
+                suboptimalMovements++;
+            }
+
+        }
+
+        if (sObjFunc < bestObjFunc) {
+            cells.clear();
+            cells = S;
+            bestObjFunc = sObjFunc;
+            maxNotImprovingIterations = 30;
+        } else {
+            //maxNotImprovingIterations --;
+            //if (maxNotImprovingIterations == 0) {
+            //    gentlemenClub(&sObjFunc, &S, (int) cells.size() / 2);
+            //    maxNotImprovingIterations = 30;
+            //}
+        }
+
+        time = ((clock() - tStart) / (double) CLOCKS_PER_SEC );
+
     }
 
-
-    stat.push_back(objFun);
+    stat.push_back(bestObjFunc);
     stat.push_back(((clock() - tStart) / (double) CLOCKS_PER_SEC ));
 
     hasSolution=true;
 
 }
 
-void Heuristic::solveGreedy(vector<double>& stat, int timeLimit,  bool verbose) {
-    double objFun=0;
-    clock_t tStart = clock();
+void Heuristic::solveGreedy(double* ObjFunc, vector<Cell>* cells) {
 
-    for (int i = 0; i < nCells; i++)
-        for (int j = 0; j < nCells; j++)
-            for (int m = 0; m < nCustomerTypes; m++)
-                for (int t = 0; t < nTimeSteps; t++)
-                    solution[i][j][m][t] = 0;
-
-    for (int i = 0; i < nCells; i++) {
-        int domanda = problem.activities[i];
-        if (domanda != 0) {
-            while (domanda > 0) {
-                double bestRatio = 9999999;
-                int bestj, bestm, bestt;
-                for (int j = 0; j < nCells && (domanda > 0); j++) {
-                    for (int m = 0; m < nCustomerTypes && (domanda > 0); m++) {
-                        for (int t = 0; t < nTimeSteps && (domanda > 0); t++) {
-                            if ((i != j) && (problem.usersCell[j][m][t]!=0)) {
-                                double ratio = problem.costs[i][j][m][t] / problem.n[m];
-                                if (ratio < bestRatio) {
-                                    bestRatio = ratio;
-                                    bestj = j;
-                                    bestm = m;
-                                    bestt = t;
-                                }
+    for (int x = 0; x < (*cells).size(); x++) {
+        bool AgentFound = true;
+        bool tooPrecise = true;
+        while ((*cells)[x].activities > 0) {
+            if (!AgentFound) tooPrecise = false;
+            AgentFound = false;
+            double bestRatio = 9999999;
+            int bestj, bestm, bestt;
+            for (int j = 0; j < nCells && (demand > 0); j++) {
+                for (int m = 0; m < nCustomerTypes && (demand > 0); m++) {
+                    if (tooPrecise) {
+                        if (demand < problem.n[m]) {
+                            break;
+                        }
+                    }
+                    for (int t = 0; t < nTimeSteps && (demand > 0); t++) {
+                        if (((*cells)[x].i != j) && (problem.usersCell[j][m][t] != 0)) {
+                            double ratio = problem.costs[j][(*cells)[x].i][m][t] / problem.n[m];
+                            if (ratio < bestRatio) {
+                                AgentFound = true;
+                                bestRatio = ratio;
+                                bestj = j;
+                                bestm = m;
+                                bestt = t;
                             }
                         }
                     }
                 }
-                if (domanda > problem.n[bestm] * problem.usersCell[bestj][bestm][bestt]) {
-                    solution[i][bestj][bestm][bestt] = problem.usersCell[bestj][bestm][bestt];
-                    problem.usersCell[bestj][bestm][bestt] -= solution[i][bestj][bestm][bestt];
-                }
-                else {
-                    if ((domanda%problem.n[bestm]) == 0) {
-                        solution[i][bestj][bestm][bestt] += floor(domanda / problem.n[bestm]);
-                    } else solution[i][bestj][bestm][bestt] += floor(domanda / problem.n[bestm]) + 1;
-                    problem.usersCell[bestj][bestm][bestt] -= solution[i][bestj][bestm][bestt];
-                }
-                if (solution[i][bestj][bestm][bestt] != 0) {
-                    objFun += solution[i][bestj][bestm][bestt] * problem.costs[i][bestj][bestm][bestt];
-                }
-                domanda -= problem.n[bestm]*solution[i][bestj][bestm][bestt];
             }
 
+            if (AgentFound) {
+                int i = (*cells)[x].i;
+                int j = bestj;
+                int m = bestm;
+                int t = bestt;
+
+                if ((*cells)[x].activities > (problem.n[m] *  problem.usersCell[j][m][t])) {
+                    (*cells)[x].partialObjFunc += problem.usersCell[j][m][t] * problem.costs[j][i][m][t];
+                    *ObjFunc += problem.usersCell[j][m][t] * problem.costs[j][i][m][t];
+                    (*cells)[x].activities -= problem.usersCell[j][m][t] * problem.n[m];
+                    Agent tmpAgent = Agent(j, m, t, problem.usersCell[j][m][t]);
+                    (*cells)[x].usedAgents.push_back(tmpAgent);
+                    problem.usersCell[j][m][t] = 0;
+                } else {
+                    int howmany = floor((*cells)[x].activities / problem.n[m]);
+                    if (tooPrecise) {
+                        howmany = floor((*cells)[x].activities / problem.n[m]);
+                    } else {
+                        if ( demand % problem.n[m] == 0) {
+                            howmany = floor((*cells)[x].activities / problem.n[m]);
+                        } else {
+                            howmany = floor((*cells)[x].activities / problem.n[m]) + 1;
+                        }
+                    }
+                    Agent tmpAgent = Agent(j, m, t, howmany);
+                    (*cells)[x].partialObjFunc += howmany * problem.costs[j][i][m][t];
+                    *ObjFunc += howmany * problem.costs[j][i][m][t];
+                    (*cells)[x].activities -= howmany * problem.n[m];
+                    (*cells)[x].usedAgents.push_back(tmpAgent);
+                    problem.usersCell[j][m][t] -= howmany;
+                }
+            }
+
+            (*cells)[x].activities = demand;
+        }
+    }
+}
+
+void Heuristic::gentlemanGreedy(double *ObjFunc, vector<Cell> *cells) {
+
+    for (int x = 0; x < (*cells).size(); x++) {
+        while ((*cells)[x].activities > 0) {
+            double bestRatio = 9999999;
+            int bestj, bestm, bestt;
+            for (int j = 0; j < nCells && (demand > 0); j++) {
+                for (int m = 0; m < nCustomerTypes && (demand > 0); m++) {
+                    for (int t = 0; t < nTimeSteps && (demand > 0); t++) {
+
+                        if (((*cells)[x].i != j) && (problem.usersCell[j][m][t] != 0)) {
+
+                            double ratio = problem.costs[j][(*cells)[x].i][m][t] / problem.n[m];
+
+                            if (ratio < bestRatio) {
+                                bestRatio = ratio;
+                                bestj = j;
+                                bestm = m;
+                                bestt = t;
+                            }
+
+                        }
+
+                    }
+                }
+            }
+
+            int i = (*cells)[x].i;
+            int j = bestj;
+            int m = bestm;
+            int t = bestt;
+
+            if ((*cells)[x].activities > (problem.n[m] *  problem.usersCell[j][m][t])) {
+
+                (*cells)[x].partialObjFunc += problem.usersCell[j][m][t] * problem.costs[j][i][m][t];
+                *ObjFunc += problem.usersCell[j][m][t] * problem.costs[j][i][m][t];
+                (*cells)[x].activities -= problem.usersCell[j][m][t] * problem.n[m];
+                Agent tmpAgent = Agent(j, m, t, problem.usersCell[j][m][t]);
+                (*cells)[x].usedAgents.push_back(tmpAgent);
+                problem.usersCell[j][m][t] = 0;
+
+            } else {
+
+                int howmany;
+                if ( demand % problem.n[m] == 0) {
+                    howmany = floor((*cells)[x].activities / problem.n[m]);
+                } else {
+                    howmany = floor((*cells)[x].activities / problem.n[m]) + 1;
+                }
+                Agent tmpAgent = Agent(j, m, t, howmany);
+                (*cells)[x].partialObjFunc += howmany * problem.costs[j][i][m][t];
+                *ObjFunc += howmany * problem.costs[j][i][m][t];
+                (*cells)[x].activities -= howmany * problem.n[m];
+                (*cells)[x].usedAgents.push_back(tmpAgent);
+                problem.usersCell[j][m][t] -= howmany;
+
+            }
         }
     }
 
-    stat.push_back(objFun);
-    stat.push_back(((clock() - tStart) / (double) CLOCKS_PER_SEC ));
+}
 
-    hasSolution=true;
+void Heuristic::gentlemanAgreement(double* ObjFunc, vector<Cell>* cells) {
+    initRandSeed;
+
+    int x = rand() % (*cells).size();
+    int y;
+    do {
+        y = rand() % (*cells).size();
+    } while ( x == y);
+
+    int beneficiary, donor;
+
+    if ((*cells)[x].partialObjFunc > (*cells)[x].partialObjFunc) {
+        donor = y;
+        beneficiary = x;
+    } else {
+        donor = x;
+        beneficiary = y;
+    }
+
+    int i_d = (*cells)[donor].i;
+    int j_d = (*cells)[donor].usedAgents[0].j;
+    int m_d = (*cells)[donor].usedAgents[0].m;
+    int t_d = (*cells)[donor].usedAgents[0].t;
+    int n_d = (*cells)[donor].usedAgents[0].n;
+
+    int i_b = (*cells)[beneficiary].i;
+    int j_b = (*cells)[beneficiary].usedAgents[0].j;
+    int m_b = (*cells)[beneficiary].usedAgents[0].m;
+    int t_b = (*cells)[beneficiary].usedAgents[0].t;
+    int n_b = (*cells)[beneficiary].usedAgents[0].n;
+
+    *ObjFunc -= problem.costs[j_d][i_d][m_d][t_d] * n_d;
+    (*cells)[donor].partialObjFunc -= problem.costs[j_d][i_d][m_d][t_d] * n_d;
+    problem.usersCell[j_d][m_d][t_d] += n_d;
+    (*cells)[donor].usedAgents.pop_front();
+
+    *ObjFunc -= problem.costs[j_b][i_b][m_b][t_b] * n_b;
+    (*cells)[beneficiary].partialObjFunc -= problem.costs[j_b][i_b][m_b][t_b] * n_b;
+    problem.usersCell[j_b][m_b][t_b] += n_d;
+    (*cells)[beneficiary].activities += problem.n[m_b] * n_b;
+    (*cells)[beneficiary].usedAgents.pop_front();
+
+    gentlemanGreedy(ObjFunc, cells);
+
+    usleep(500);
+
+    (*cells)[donor].activities += problem.n[(*cells)[donor].usedAgents[0].m];
+
+    gentlemanGreedy(ObjFunc, cells);
 
 }
+
+/*void Heuristic::gentlemenClub(double* ObjFunc, vector<Cell>* cells, int n) {
+    vector<int> chosenOnes, activitiesToAdd;
+
+    initRandSeed;
+
+    for (int i = 0; i < n; i++) {
+        int x;
+        do {
+            x = rand() % (*cells).size();
+        } while (find(chosenOnes.begin(), chosenOnes.end(), x) != chosenOnes.end());
+        activitiesToAdd.push_back(0);
+        chosenOnes.push_back(x);
+    }
+
+    //order by crescent objFun?
+
+    for (int i = 0; i < n; i++) {
+        while ((*cells)[chosenOnes[i]].usedAgents.size() > 0) {
+            *ObjFunc -= problem.costs[(*cells)[chosenOnes[i]].usedAgents[0].j][(*cells)[chosenOnes[i]].i][(*cells)[chosenOnes[i]].usedAgents[0].m][(*cells)[chosenOnes[i]].usedAgents[0].t] * (*cells)[chosenOnes[i]].usedAgents[0].n;
+            (*cells)[chosenOnes[i]].partialObjFunc -= problem.costs[(*cells)[chosenOnes[i]].usedAgents[0].j][(*cells)[chosenOnes[i]].i][(*cells)[chosenOnes[i]].usedAgents[0].m][(*cells)[chosenOnes[i]].usedAgents[0].t] * (*cells)[chosenOnes[i]].usedAgents[0].n;
+            problem.usersCell[(*cells)[chosenOnes[i]].usedAgents[0].j][(*cells)[chosenOnes[i]].usedAgents[0].m][(*cells)[chosenOnes[i]].usedAgents[0].t] += (*cells)[chosenOnes[i]].usedAgents[0].n;
+            activitiesToAdd[i] += problem.n[(*cells)[chosenOnes[i]].usedAgents[0].m] * (*cells)[chosenOnes[i]].usedAgents[0].n;
+            (*cells)[chosenOnes[i]].usedAgents[0].n = 0;
+            (*cells)[chosenOnes[i]].usedAgents.pop_front();
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        (*cells)[chosenOnes[i]].activities += activitiesToAdd[i];
+        gentlemanGreedy(ObjFunc, cells);
+        usleep(500);
+    }
+
+}
+*/
+
 void Heuristic::writeKPI(string path, string instanceName, vector<double> stat){
     if (!hasSolution)
         return;
@@ -262,12 +466,11 @@ void Heuristic::writeSolution(string path) {
         return;
 
     fileO << this->nCells << "; " << this->nTimeSteps << "; " << this->nCustomerTypes << endl;
-    for (int m = 0; m < this->nCustomerTypes; m++)
-        for (int t = 0; t < this->nTimeSteps; t++)
-            for (int i = 0; i < this->nCells; i++)
-                for (int j = 0; j < this->nCells; j++)
-                    if (solution[i][j][m][t] > 0)
-                        fileO << i << ";" << j << ";" << m << ";" << t << ";" << solution[i][j][m][t] << endl;
+    for (int i = 0; i < this->cells.size(); i++) {
+        for (int j = 0; j < cells[i].usedAgents.size(); j++) {
+            fileO << cells[i].usedAgents[j].j << ";" << cells[i].i << ";" << cells[i].usedAgents[j].m << ";" << cells[i].usedAgents[j].t endl;
+        }
+    }
 
     fileO.close();
 }
@@ -338,6 +541,7 @@ eFeasibleState Heuristic::isFeasible(string path) {
                 for (int t = 0; t < nTimeSteps; t++)
                     expr += problem.n[m] * solutionN[j][i][m][t];
         if (expr < problem.activities[i])
+
             feasible = false;
     }
 
@@ -369,12 +573,11 @@ void Heuristic::getStatSolution(vector<double>& stat) {
     for (int m = 0; m < nCustomerTypes; m++)
         tipi[m] = 0;
 
-    for (int i = 0; i < nCells; i++)
-        for (int j = 0; j < nCells; j++)
-            for (int t = 0; t < nTimeSteps; t++)
-                for (int m = 0; m < nCustomerTypes; m++)
-                    if (solution[i][j][m][t] > 0)
-                        tipi[m] += solution[i][j][m][t];
+    for (int i = 0; i < cells.size(); i++) {
+        for (int j = 0; j < cells[i].usedAgents.size(); j++) {
+            tipi[cells[i].usedAgents[j].m] += cells[i].usedAgents[j].n;
+        }
+    }
     for (int m = 0; m < nCustomerTypes; m++)
         stat.push_back(tipi[m]);
 
