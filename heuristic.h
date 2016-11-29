@@ -13,6 +13,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <queue>
 
 using namespace std;
 
@@ -54,7 +55,7 @@ public:
     int i;
     double partialObjFunc;
     int activities;
-    deque<Agent> usedAgents;
+    queue<Agent> usedAgents;
     Cell(int i, int n) {
         this->i = i;
         this->activities = n;
@@ -75,6 +76,7 @@ private:
     bool hasSolution;
     double epsilon;
     vector<Cell> cells;
+    int**** solution;
 
 public:
     /**
