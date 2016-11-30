@@ -26,6 +26,7 @@ struct Data {
     int* activities;
     // Number of users of type m in i during time period t (ikt)
     int*** usersCell;
+    int*** ORIGINALusersCell;
 };
 
 enum eFeasibleState {

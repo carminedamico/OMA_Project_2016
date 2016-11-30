@@ -5,8 +5,6 @@
 #include <iostream>
 #include <random>
 #include "heuristic.h"
-#include <time.h>
-#include <ctime>
 #include <unistd.h>
 
 #ifdef _WIN32
@@ -14,6 +12,8 @@
 	#include <algorithm>
 	#define initRandSeed SYSTEMTIME st; GetSystemTime(&st); srand(st.wMilliseconds);
 #else
+#include <time.h>
+#include <ctime>
 #define initRandSeed struct timespec spec; clock_gettime(CLOCK_REALTIME,&spec); srand(spec.tv_nsec);
 #endif
 
@@ -60,10 +60,13 @@ Heuristic::Heuristic(string path){
     problem.n = new int[nCustomerTypes];
     problem.activities = new int[nCells];
     problem.usersCell = new int**[nCells];
+    problem.ORIGINALusersCell = new int**[nCells];
     for (int i = 0; i < this->nCells; i++) {
         problem.usersCell[i] = new int*[nCustomerTypes];
+        problem.ORIGINALusersCell[i] = new int*[nCustomerTypes];
         for (int m = 0; m < this->nCustomerTypes; m++) {
             problem.usersCell[i][m] = new int[nTimeSteps];
+            problem.ORIGINALusersCell[i][m] = new int[nTimeSteps];
         }
     }
     this->bestSolution = new double[4];
@@ -111,6 +114,7 @@ Heuristic::Heuristic(string path){
             for (int i = 0; i < nCells; i++) {
                 issU >> word;
                 problem.usersCell[i][m][t] = atoi(word.c_str());
+                problem.ORIGINALusersCell[i][m][t] = problem.usersCell[i][m][t];
             }
         }
     }
@@ -152,17 +156,20 @@ Heuristic::Heuristic(string path){
 
 void Heuristic::Metaheuristic(vector<double>& stat) {
     double sObjFunc = 0, // initial objective function
-            bestObjFunc = 0; // best objective function
+         bestObjFunc = 0, // best objective function
+            rObjFunc = 0; // tmp
     clock_t tStart = clock();
     int maxNotImprovingIterations = 30;
 
-    solveGreedy(&sObjFunc, &cells); //some initial solution
+    solveGreedy(&bestObjFunc, &cells); //some initial solution
 
-    bestObjFunc = sObjFunc;
+    sObjFunc = bestObjFunc;
+
+    rObjFunc = bestObjFunc;
 
     cout << bestObjFunc << "\n";
 
-    vector<Cell> S(cells);
+    vector<Cell> S(cells), R(cells);
 
     double time = ((clock() - tStart) / (double) CLOCKS_PER_SEC );
 
@@ -173,43 +180,40 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
     int suboptimalMovements = 0;
     vector<double> Ttrace;
 
-    for (int i = 0; i < 100; i++) {
-        gentlemanAgreement(&bestObjFunc, &cells);
-    }
-
     while (time < 4.9) {
         if (++k % 1000 == 0) {
             Ttrace.push_back(T);
-            //T = T0*pow(alpha,k);
             T -= T*alpha;
         }
 
-        vector<Cell> R(S);
-        double rObjFunc = sObjFunc;
-        gentlemanAgreement(&rObjFunc, &R);
+        gentlemanAgreement(&sObjFunc, &S);
 
-        if (rObjFunc < sObjFunc) {
-            S.clear();
-            S = R;
-            sObjFunc = rObjFunc;
-        } else if (rObjFunc > sObjFunc) {
+        if (sObjFunc < rObjFunc) {
+            R.clear();
+            vector<Cell>().swap(R);
+            R = S;
+            rObjFunc = sObjFunc;
+        } /*else if (rObjFunc > sObjFunc) {
             double p = exp(-(rObjFunc-sObjFunc)/T);
             initRandSeed;
             double r = ((double)(rand() % 10)) / 10.0;
 
             if (r < p) {
+                cout << R.size() << " " << S.size() << "\n";
+                S.clear();
+                vector<Cell>(S).swap(S);
                 S = R;
                 sObjFunc = rObjFunc;
-                suboptimalMovements++;
             }
 
-        }
+        }*/
 
-        if (sObjFunc < bestObjFunc) {
+        if (rObjFunc < bestObjFunc) {
             cells.clear();
-            cells = S;
-            bestObjFunc = sObjFunc;
-            maxNotImprovingIterations = 30;
+            vector<Cell>().swap(cells);
+            cells = R;
+            bestObjFunc = rObjFunc;
+            //maxNotImprovingIterations = 30;
         } else {
             //maxNotImprovingIterations --;
             //if (maxNotImprovingIterations == 0) {
@@ -408,11 +412,17 @@ void Heuristic::gentlemanAgreement(double* ObjFunc, vector<Cell>* cells) {
     *ObjFunc -= problem.costs[j_d][i_d][m_d][t_d] * n_d;
     (*cells)[donor].partialObjFunc -= problem.costs[j_d][i_d][m_d][t_d] * n_d;
     problem.usersCell[j_d][m_d][t_d] += n_d;
+    if (problem.usersCell[j_d][m_d][t_d] > problem.ORIGINALusersCell[j_d][m_d][t_d]) {
+        cout << "1 " << j_d << " " << problem.usersCell[j_d][m_d][t_d] << " ORIGINALE " << problem.ORIGINALusersCell[j_d][m_d][t_d] << "\n";
+    }
     (*cells)[beneficiary].usedAgents.front().n = 0;
 
     *ObjFunc -= problem.costs[j_b][i_b][m_b][t_b] * n_b;
     (*cells)[beneficiary].partialObjFunc -= problem.costs[j_b][i_b][m_b][t_b] * n_b;
     problem.usersCell[j_b][m_b][t_b] += n_b;
+    if (problem.usersCell[j_b][m_b][t_b] > problem.ORIGINALusersCell[j_b][m_b][t_b]) {
+        cout << "2 " << j_b << " " << problem.usersCell[j_b][m_b][t_b] << " ORIGINALE " << problem.ORIGINALusersCell[j_b][m_b][t_b] << "\n";
+    }
     (*cells)[beneficiary].activities += problem.n[m_b] * n_b;
     (*cells)[beneficiary].usedAgents.pop();
 
@@ -581,8 +591,10 @@ eFeasibleState Heuristic::isFeasible(string path) {
                 expr = 0;
                 for (int j = 0; j < nCells; j++)
                     expr += solutionN[i][j][m][t];
-                if (expr > problem.usersCell[i][m][t])
+                if (expr > problem.usersCell[i][m][t]) {
+                    cout << i << "\n";
                     feasible = false;
+                }
             }
 
     if(!feasible)
