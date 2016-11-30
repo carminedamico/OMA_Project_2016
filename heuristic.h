@@ -101,6 +101,8 @@ public:
     // stat contiene tempo in posizione 0 e objfunction in posizione 1
     void Metaheuristic(vector<double>& stat);
 
+    void emergencyGreedy(double* ObjFunc, vector<Cell>* cells);
+
     void solveGreedy(double *ObjFunc, vector<Cell>* cells);
 
     void gentlemanGreedy(double *ObjFunc, vector<Cell> *cells);
