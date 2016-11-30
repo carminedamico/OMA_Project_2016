@@ -121,7 +121,7 @@ Heuristic::Heuristic(string path){
 
     for (int i = 0; i < nCells; i++) {
        if (problem.activities[i] > 0) {
-           Cell tmpCell = Cell(i, problem.activities[i]);
+           Cell tmpCell = Cell(i, problem.activities[i], 0);
            this -> cells.push_back(tmpCell);
        }
    }
@@ -133,23 +133,45 @@ Heuristic::Heuristic(string path){
     if (!iffB.is_open()) {
         cout << "Impossible to open" << "./Optimal_Solutions.csv" << endl;
         cin.get();
-        exit(1);
-    }
+        bestSolutionKnown = false;
+    } else bestSolutionKnown = true;
 
-    do {
-        getline(iffB, line);
-        std::replace(line.begin(), line.end(), ';', ' ');
+    if (bestSolutionKnown) {
+        do {
+            getline(iffB, line);
+            std::replace(line.begin(), line.end(), ';', ' ');
+            istringstream isb(line);
+            isb >> word;
+            word += '.';
+        } while(path.find(word) == string::npos);
+
         istringstream isb(line);
         isb >> word;
-        word += '.';
-    } while(path.find(word) == string::npos);
-
-    istringstream isb(line);
-    isb >> word;
-    isb >> word;
-    for (int k = 0; k < 4; k++) {
         isb >> word;
-        this -> bestSolution[k] = atof(word.c_str());
+        for (int k = 0; k < 4; k++) {
+            isb >> word;
+            this -> bestSolution[k] = atof(word.c_str());
+        }
+    }
+
+}
+
+void Heuristic::copyDataStructure(vector<Cell>* Y, vector<Cell>* X) {
+    (*Y).clear();
+    vector<Cell>().swap((*Y));
+
+    for (int i = 0; i < (*X).size(); i++) {
+        Cell tmpCell = Cell((*X)[i].i, (*X)[i].activities, (*X)[i].partialObjFunc);
+        (*Y).push_back(tmpCell);
+
+        int iterations = (*X)[i].usedAgents.size();
+        for (int j = 0; j < iterations; j++) {
+            Agent tmpAgent = Agent((*X)[i].usedAgents.front().j, (*X)[i].usedAgents.front().m,
+                                   (*X)[i].usedAgents.front().t, (*X)[i].usedAgents.front().n);
+            (*X)[i].usedAgents.pop();
+            (*X)[i].usedAgents.push(tmpAgent);
+            (*Y)[i].usedAgents.push(tmpAgent);
+        }
     }
 
 }
@@ -169,7 +191,16 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 
     cout << bestObjFunc << "\n";
 
-    vector<Cell> S(cells), R(cells);
+    vector<Cell> S;
+
+    copyDataStructure(&S, &cells);
+
+
+    for (int i1 = 0; i1 < 5000; i1++) {
+        vector<Cell> R;
+        copyDataStructure(&R, &S);
+        gentlemanAgreement(&rObjFunc, &R);
+    }
 
     double time = ((clock() - tStart) / (double) CLOCKS_PER_SEC );
 
@@ -180,38 +211,34 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
     int suboptimalMovements = 0;
     vector<double> Ttrace;
 
-    while (time < 4.9) {
+    /*while (time < 4.9) {
         if (++k % 1000 == 0) {
             Ttrace.push_back(T);
             T -= T*alpha;
         }
 
+
+        copyDataStructure(&S, &R);
+
         gentlemanAgreement(&sObjFunc, &S);
 
         if (sObjFunc < rObjFunc) {
-            R.clear();
-            vector<Cell>().swap(R);
-            R = S;
+            copyDataStructure(&R, &S);
             rObjFunc = sObjFunc;
-        } /*else if (rObjFunc > sObjFunc) {
+        } else if (sObjFunc > rObjFunc) {
             double p = exp(-(rObjFunc-sObjFunc)/T);
             initRandSeed;
             double r = ((double)(rand() % 10)) / 10.0;
 
             if (r < p) {
-                cout << R.size() << " " << S.size() << "\n";
-                S.clear();
-                vector<Cell>(S).swap(S);
-                S = R;
-                sObjFunc = rObjFunc;
+                copyDataStructure(&R, &S);
+                rObjFunc = sObjFunc;
             }
 
-        }*/
+        }
 
         if (rObjFunc < bestObjFunc) {
-            cells.clear();
-            vector<Cell>().swap(cells);
-            cells = R;
+            copyDataStructure(&cells, &R);
             bestObjFunc = rObjFunc;
             //maxNotImprovingIterations = 30;
         } else {
@@ -224,7 +251,7 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 
         time = ((clock() - tStart) / (double) CLOCKS_PER_SEC );
 
-    }
+    }*/
 
     stat.push_back(bestObjFunc);
     stat.push_back(((clock() - tStart) / (double) CLOCKS_PER_SEC ));

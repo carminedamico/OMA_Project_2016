@@ -38,6 +38,7 @@ enum eFeasibleState {
 
 class Agent {
 public:
+
     int j;
     int m;
     int t;
@@ -57,10 +58,10 @@ public:
     double partialObjFunc;
     int activities;
     queue<Agent> usedAgents;
-    Cell(int i, int n) {
+    Cell(int i, int n, double Obj) {
         this->i = i;
         this->activities = n;
-        this->partialObjFunc = 0;
+        this->partialObjFunc = Obj;
     }
 };
 
@@ -79,6 +80,8 @@ private:
     vector<Cell> cells;
     int**** solution;
 
+    void copyDataStructure(vector<Cell>* Y, vector<Cell>* X);
+
 public:
     /**
      * Default constructor
@@ -86,6 +89,7 @@ public:
      */
     Heuristic(){};
     double* bestSolution;
+    bool bestSolutionKnown;
 
     /**
      * Constructor from external file
