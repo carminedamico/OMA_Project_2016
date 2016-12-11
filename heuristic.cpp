@@ -211,7 +211,7 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 
     solveGreedy(); //some initial solution
 
-    cout << "INITIAL SOLUTION: " << R.objFunc << "\n";
+    cout << "\tINITIAL SOLUTION: " << R.objFunc << "\n";
 
     copyDataStructure(&B, &R);
 
@@ -227,8 +227,8 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 
     double time = ((clock() - tStart) / (double) CLOCKS_PER_SEC );
 
-    while (time < 4.92) {
-        
+    while (time < 4.94) {
+
 		copyDataStructure(&R, &S);
 
         gentlemanAgreement();
@@ -273,7 +273,7 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
         iterations++;
     }
 
-    cout << "ITERATIONS: " << iterations << "\n";
+    cout << "\tITERATIONS: " << iterations << "\n";
 
 
     stat.push_back(B.objFunc);

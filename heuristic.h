@@ -44,7 +44,6 @@ public:
 
 class Cell {
 public:
-    
     int i;
     double partialObjFunc;
     int activities;
@@ -58,16 +57,16 @@ public:
 
 class Solution {
 public:
-    
     int cellsWithActivitiesLeft;
     vector<Cell> cells;
     double objFunc;
     int*** usersCell;
 };
 
+
+
 class Heuristic{
 private:
-    
     int nTimeSteps;
     int nCustomerTypes;
     int nCells;
@@ -84,13 +83,22 @@ private:
     void copyDataStructure(Solution* Y, Solution* X);
 
 public:
-    
+    /**
+     * Default constructor
+     * @return Heuristic object
+     */
     Heuristic(){};
     double* bestSolution;
     bool bestSolutionKnown;
 
+    /**
+     * Constructor from external file
+     * @param path path of the external file cotaining the instance of the problem
+     * @return
+     */
     Heuristic(string path);
 
+    // stat contiene tempo in posizione 0 e objfunction in posizione 1
     void Metaheuristic(vector<double>& stat);
 
     void solveGreedy();

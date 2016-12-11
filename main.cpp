@@ -1,6 +1,7 @@
 #include <list>
 #include <iostream>
 #include <cstring>
+
 #include "utils.h"
 #include "heuristic.h"
 
@@ -36,6 +37,7 @@ int main(int argc,char *argv[]){
 
 	if(!_test) {
 		// Read the instance file
+		cout << _inPath << ": \n";
 		Heuristic _heuristic(_inPath);
 		// Solve the problem
 		vector<double> stat;
@@ -45,8 +47,6 @@ int main(int argc,char *argv[]){
         string instanceName = splitpath(_inPath);
         _heuristic.writeKPI(_outPath, instanceName, stat);
 
-        //
-        cout << _inPath << ": \n";
         cout << "\tTIME: " << stat[1] << "\n";
         cout << "\tSOLUTION FOUND: " << stat[0] << "\n";
         if (_heuristic.bestSolutionKnown) {
