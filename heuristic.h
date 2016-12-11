@@ -1,7 +1,3 @@
-//
-// Created by Luca Gobbato on 04/10/16.
-//
-
 #ifndef COIOTE_HEURISTIC_HEURISTIC_H
 #define COIOTE_HEURISTIC_HEURISTIC_H
 
@@ -13,17 +9,14 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <deque>
 
 using namespace std;
 
 struct Data {
-    // the costs ijkt
     double**** costs;
-    //number of activity done by one user of type k
     int* n;
-    // Activities to be done in node i during the given time horizon
     int* activities;
-    // Number of users of type m in i during time period t (ikt)
     int*** usersCell;
 };
 
@@ -34,9 +27,47 @@ enum eFeasibleState {
     NOT_FEASIBLE_USERS
 };
 
+class Agent {
+public:
+
+    int j;
+    int m;
+    int t;
+    int n;
+    Agent(int j, int m, int t, int n) {
+        this->j = j;
+        this->m = m;
+        this->t = t;
+        this->n = n;
+    }
+};
+
+class Cell {
+public:
+    
+    int i;
+    double partialObjFunc;
+    int activities;
+    deque<Agent> usedAgents;
+    Cell(int i, int n, double Obj) {
+        this->i = i;
+        this->activities = n;
+        this->partialObjFunc = Obj;
+    }
+};
+
+class Solution {
+public:
+    
+    int cellsWithActivitiesLeft;
+    vector<Cell> cells;
+    double objFunc;
+    int*** usersCell;
+};
 
 class Heuristic{
 private:
+    
     int nTimeSteps;
     int nCustomerTypes;
     int nCells;
@@ -45,33 +76,30 @@ private:
 
     bool hasSolution;
     double epsilon;
+    Solution B;
+    Solution R;
+    Solution S;
     int**** solution;
 
+    void copyDataStructure(Solution* Y, Solution* X);
+
 public:
-    /**
-     * Default constructor
-     * @return Heuristic object
-     */
+    
     Heuristic(){};
     double* bestSolution;
+    bool bestSolutionKnown;
 
-    /**
-     * Constructor from external file
-     * @param path path of the external file cotaining the instance of the problem
-     * @return
-     */
     Heuristic(string path);
 
-    // stat contiene tempo in posizione 0 e objfunction in posizione 1
-    void solveFast(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void Metaheuristic(vector<double>& stat);
 
-    void solveGreedy(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void solveGreedy();
 
-    //int countCombination(int pos, int sol[], int set[], int k, int count, int** combination, int *n);
+    void gentlemanGreedy();
 
-    //void solveSlowly(int pos, int k, int ** combination, float *bestobj);
+    void gentlemanAgreement();
 
-    //void solveOptimally(vector<double>& stat, int timeLimit = - 1,  bool verbose = false);
+    void gentlemenClub(int n);
 
     void getStatSolution(vector<double>& stat);
 
