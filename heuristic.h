@@ -29,7 +29,6 @@ enum eFeasibleState {
 
 class Agent {
 public:
-
     int j;
     int m;
     int t;
@@ -63,7 +62,13 @@ public:
     int*** usersCell;
 };
 
-
+class Bee {
+public:
+	int iterationsWithoutImprovements = 0;
+	int iterationsToRestore = 0;
+	Solution solution;
+	vector<Bee*> onlookers;
+};
 
 class Heuristic{
 private:
@@ -76,8 +81,7 @@ private:
     bool hasSolution;
     double epsilon;
     Solution B;
-    Solution R;
-    Solution S;
+	vector<Bee> bees;
     int**** solution;
 
     void copyDataStructure(Solution* Y, Solution* X);
@@ -101,13 +105,13 @@ public:
     // stat contiene tempo in posizione 0 e objfunction in posizione 1
     void Metaheuristic(vector<double>& stat);
 
-    void solveGreedy();
+    void solveGreedy(Solution *R);
 
-    void gentlemanGreedy();
+    void gentlemanGreedy(Solution *R);
 
-    void gentlemanAgreement();
+    void gentlemanAgreement(Solution *R, Solution *S);
 
-    void gentlemenClub(int n);
+    void gentlemenClub(Solution *R, Solution *S, int n);
 
     void getStatSolution(vector<double>& stat);
 
