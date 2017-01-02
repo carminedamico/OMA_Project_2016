@@ -286,7 +286,7 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 		for (int i = 0; i < EMPLOYED_BEES; ++i) {	// For each employed bee (for each of the first EMPLOYED_BEES bees in the hive)
 			bees[i].onlookers.clear();				// Remove the previous onlooker bees (to avoid cuncurrency in the reclutation of the onlookers)
 			for (int j = reclutationIndex; j > reclutationIndex - ONLOOKER_BEES_PER_EMPLOYED + i; j--) {
-				bees[i].onlookers.push_back(&bees[j]);	// Assing an onlooker to the emplouyed bee
+				bees[i].onlookers.push_back(&bees[j]);	// Assign an onlooker to the emplouyed bee
 			}
 			reclutationIndex -= (ONLOOKER_BEES_PER_EMPLOYED + i);
 		}
@@ -301,11 +301,17 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 			for (int o = 0; o < bees[b].onlookers.size(); o++) {						// For each onlooker
 				copyDataStructure(&bees[b].onlookers[o]->solution, &bees[b].solution);	// The onlooker bee starts from the position of the employed bee
 				gentlemenClub(&bees[b].onlookers[o]->solution, &bees[b].solution, 2);	// The onlooker performs a gentlemanClub
-				gentlemanAgreement(&bees[b].onlookers[o]->solution, &bees[b].solution);	// The onlooker performs a gentlemanAgreement
 				if (bees[b].onlookers[o]->solution.objFunc < bees[b].onlookers[bestOnlookerIndex]->solution.objFunc) {
 					bestOnlookerIndex = o;		// Eventually save the index of the onlooker if she has the best obj function
 				}
 			}
+
+            for (int o = 0; o < bees[b].onlookers.size(); o++) {						// For each onlooker
+                gentlemanAgreement(&bees[b].onlookers[o]->solution, &bees[b].solution);	// The onlooker performs a gentlemanAgreement
+                if (bees[b].onlookers[o]->solution.objFunc < bees[b].onlookers[bestOnlookerIndex]->solution.objFunc) {
+                    bestOnlookerIndex = o;		// Eventually save the index of the onlooker if she has the best obj function
+                }
+            }
 
 			/* Is the objective function of the best onlooker better than the objective function of the employed? */
 			if (bees[b].onlookers[bestOnlookerIndex]->solution.objFunc < bees[b].solution.objFunc) {
@@ -592,17 +598,17 @@ void Heuristic::gentlemanAgreement(Solution *R, Solution *S) {
 }
 
 void Heuristic::gentlemenClub(Solution *R, Solution *S, int n) {
-    vector<int> chosenOnes, activitiesToAdd;
+    vector<int> chosenOnes, activitiesToAdd, randomNumbers;
 
-    initRandSeed;
+    for (int i = 0; i < R->cells.size(); ++i) {
+        randomNumbers.push_back(i);
+    }
+
+    random_shuffle(randomNumbers.begin(), randomNumbers.end());
 
     for (int i = 0; i < n; i++) {
-        int x;
-        do {
-            x = rand() % R->cells.size();
-        } while (find(chosenOnes.begin(), chosenOnes.end(), x) != chosenOnes.end());
         activitiesToAdd.push_back(0);
-        chosenOnes.push_back(x);
+        chosenOnes.push_back(randomNumbers[i]);
     }
 
 
