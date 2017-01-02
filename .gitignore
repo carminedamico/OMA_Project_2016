@@ -36,8 +36,6 @@ Coiote_heuristic
 
 solved/solved.txt
 
-output/output.txt
-
 #VISUAL STUDIO
 
 # User-specific files
@@ -363,4 +361,3 @@ CMakeFiles/3.7.0/CMakeCXXCompiler.cmake
 
 CMakeFiles/3.7.0/CMakeDetermineCompilerABI_C.bin
 
-output/summary.csv
