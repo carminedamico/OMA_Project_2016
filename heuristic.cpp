@@ -306,6 +306,10 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 				}
 			}
 
+			if (bees[b].onlookers[bestOnlookerIndex]->solution.objFunc < bees[b].solution.objFunc) {
+				copyDataStructure(&bees[b].solution, &bees[b].onlookers[bestOnlookerIndex]->solution);	// If yes, move the employed in the new solution
+			}
+
             for (int o = 0; o < bees[b].onlookers.size(); o++) {						// For each onlooker
                 gentlemanAgreement(&bees[b].onlookers[o]->solution, &bees[b].solution);	// The onlooker performs a gentlemanAgreement
                 if (bees[b].onlookers[o]->solution.objFunc < bees[b].onlookers[bestOnlookerIndex]->solution.objFunc) {
@@ -316,7 +320,6 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 			/* Is the objective function of the best onlooker better than the objective function of the employed? */
 			if (bees[b].onlookers[bestOnlookerIndex]->solution.objFunc < bees[b].solution.objFunc) {
 				copyDataStructure(&bees[b].solution, &bees[b].onlookers[bestOnlookerIndex]->solution);	// If yes, move the employed in the new solution
-
 			} else {
 				bees[b].iterationsWithoutImprovements++;	// otherwise increment the iterationWithoutImprovements counter
 			}
@@ -551,7 +554,7 @@ void Heuristic::gentlemanAgreement(Solution *R, Solution *S) {
 
 	int beneficiary, donor;
 
-	if (R->cells[x].partialObjFunc > R->cells[y].partialObjFunc) {
+	if ((R->cells[x].partialObjFunc / R->cells[x].initialActivities) > (R->cells[y].partialObjFunc / R->cells[y].initialActivities)) {
 		donor = y;
 		beneficiary = x;
 	}

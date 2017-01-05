@@ -46,10 +46,12 @@ public:
     int i;
     double partialObjFunc;
     int activities;
+    int initialActivities;
     deque<Agent> usedAgents;
     Cell(int i, int n, double Obj) {
         this->i = i;
         this->activities = n;
+        this->initialActivities = n;
         this->partialObjFunc = Obj;
     }
 };
