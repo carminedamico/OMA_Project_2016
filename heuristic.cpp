@@ -5,13 +5,13 @@
 #include <algorithm>
 
 #ifdef _WIN32
-#include <Windows.h>
+	#include <Windows.h>
 	#include <algorithm>
 	#define initRandSeed SYSTEMTIME st; GetSystemTime(&st); srand(st.wMilliseconds);
 #else
-#include <ctime>
-#include <unistd.h>
-#define initRandSeed struct timespec spec; clock_gettime(CLOCK_REALTIME,&spec); srand(spec.tv_nsec);
+	#include <ctime>
+	#include <unistd.h>
+	#define initRandSeed struct timespec spec; clock_gettime(CLOCK_REALTIME,&spec); srand(spec.tv_nsec);
 #endif
 
 using namespace std;
@@ -59,15 +59,13 @@ Heuristic::Heuristic(string path){
 		EMPLOYED_BEES = 3;
 		ONLOOKER_BEES_PER_EMPLOYED = 3;
 		MAX_ITERATIONS_TO_RESTORE = 3;
-	}
-	else if (nCells > 50) {
+	} else if (nCells > 50) {
 		MAX_NOT_IMPROVING_ITERATIONS = 20;
 		HIVE_SIZE = 100;
 		EMPLOYED_BEES = 4;
 		ONLOOKER_BEES_PER_EMPLOYED = 10;
 		MAX_ITERATIONS_TO_RESTORE = 3;
-	}
-	else {
+	} else {
 		MAX_NOT_IMPROVING_ITERATIONS = 3;
 		HIVE_SIZE = 100;
 		EMPLOYED_BEES = 5;
@@ -102,14 +100,9 @@ Heuristic::Heuristic(string path){
             problem.usersCell[i][m] = new int[nTimeSteps];
         }
     }
-    this->bestSolution = new double[4];
-
+	
 	for (int i = 0; i < HIVE_SIZE; i++) {
 		Bee employed;
-		/*for (int j = 0; j < ONLOOKER_BEES_PER_EMPLOYED; j++) {
-			Bee onlooker;
-			employed.onlookers.push_back(onlooker);
-		}*/
 		bees.push_back(employed);
 	}
 
@@ -181,34 +174,6 @@ Heuristic::Heuristic(string path){
 		}
 	}
 
-    string best_path = "./Optimal_Solutions.csv";
-
-    ifstream iffB(best_path.c_str());
-
-    if (!iffB.is_open()) {
-        cout << "Impossible to open" << "./Optimal_Solutions.csv" << endl;
-        cin.get();
-        bestSolutionKnown = false;
-    } else bestSolutionKnown = true;
-
-    if (bestSolutionKnown) {
-        do {
-            getline(iffB, line);
-            std::replace(line.begin(), line.end(), ';', ' ');
-            istringstream isb(line);
-            isb >> word;
-            word += '.';
-        } while(path.find(word) == string::npos);
-
-        istringstream isb(line);
-        isb >> word;
-        isb >> word;
-        for (int k = 0; k < 4; k++) {
-            isb >> word;
-            this -> bestSolution[k] = atof(word.c_str());
-        }
-    }
-
 }
 
 void Heuristic::copyDataStructure(Solution* Y, Solution* X) {
@@ -266,8 +231,6 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 
     /*  After the ordering, the first bee in the hive is the best solution actually found */
 	copyDataStructure(&B, &bees[0].solution);
-
-    cout << "\tINITIAL SOLUTION: " << B.objFunc << "\n";
 
 	int iterations = 0;	// Initialize iterations counter
 
@@ -365,11 +328,9 @@ void Heuristic::Metaheuristic(vector<double>& stat) {
 		}
     }
 
-    cout << "\tITERATIONS: " << iterations << "\n";
-
-
-    stat.push_back(B.objFunc);
     stat.push_back(((clock() - tStart) / (double) CLOCKS_PER_SEC ));
+
+	stat.push_back(B.objFunc);
 
     hasSolution=true;
 
@@ -649,6 +610,7 @@ void Heuristic::writeKPI(string path, string instanceName, vector<double> stat){
         return;
 
     ofstream fileO(path, ios::app);
+
     if(!fileO.is_open())
         return;
 
@@ -656,7 +618,6 @@ void Heuristic::writeKPI(string path, string instanceName, vector<double> stat){
     for(int i=2; i<stat.size(); i++)
         fileO <<  ";" << stat[i];
 
-	fileO << ";" << (this->bestSolution[0]);
     fileO << endl;
 
     fileO.close();

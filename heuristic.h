@@ -94,8 +94,6 @@ public:
      * @return Heuristic object
      */
     Heuristic(){};
-    double* bestSolution;
-    bool bestSolutionKnown;
 
     /**
      * Constructor from external file

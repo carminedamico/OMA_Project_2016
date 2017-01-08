@@ -1,6 +1,5 @@
 #include <list>
 #include <iostream>
-#include <cstring>
 
 #include "utils.h"
 #include "heuristic.h"
@@ -25,54 +24,49 @@ int main(int argc,char *argv[]){
 			_test = true;
 	}
 
-	if(_inPath.empty() || _outPath.empty() || _solPath.empty()) {
+	if(!_test && (_inPath.empty() || _outPath.empty())) {
 		cout << "------------------------------ " << endl;
 		cout << "CMD" << endl;
 		cout << "------------------------------ " << endl;
-		cout << "-i path of the instance file or solution to test" << endl;
+		cout << "-i path of the instance file" << endl;
 		cout << "-o path of the output file" << endl;
-		cout << "-s path of the output solution file" << endl;
+		cout << "-s path of the output solution file or of the solution to test(optional)" << endl;
+		cout << "-test enable the feasibility test (optional)" << endl;
         return 1;
 	}
 
 	if(!_test) {
 		// Read the instance file
-		cout << _inPath << ": \n";
 		Heuristic _heuristic(_inPath);
 		// Solve the problem
 		vector<double> stat;
 		_heuristic.Metaheuristic(stat);
-        _heuristic.getStatSolution(stat);
+		_heuristic.getStatSolution(stat);
 		// Write KPI of solution
         string instanceName = splitpath(_inPath);
         _heuristic.writeKPI(_outPath, instanceName, stat);
+		// Write solution
+		if(!_solPath.empty())
+			_heuristic.writeSolution(_solPath);
 
-        cout << "\tTIME: " << stat[1] << "\n";
-        cout << "\tSOLUTION FOUND: " << stat[0] << "\n";
-        if (_heuristic.bestSolutionKnown) {
-            cout << "\tBEST SOLUTION: " << _heuristic.bestSolution[0] << "\n";
-            cout << "\tGAP: " << (double) ((stat[0] * 100) /  _heuristic.bestSolution[0]) - 100<< "%\n";
-        }
-
-        _heuristic.writeSolution(_solPath);
-
-        Heuristic _heuristicX = Heuristic(_inPath);
-        // Read the solution file
-        eFeasibleState _feasibility = _heuristicX.isFeasible(_solPath);
-        switch(_feasibility) {
-            case FEASIBLE:
-                cout << "Solution is feasible" << endl;
-                break;
-            case NOT_FEASIBLE_DEMAND:
-                cout << "Solution is not feasible: demand not satisfied" << endl;
-                break;
-            case NOT_FEASIBLE_FLOW:
-                cout << "Solution is not feasible: flow constraint not satisfied" << endl;
-                break;
-            case NOT_FEASIBLE_USERS:
-                cout << "Solution is not feasible: exceeded number of available users" << endl;
-                break;
-        }
 	}
+	else {
+        // Read the instance file
+		Heuristic _heuristic(_inPath);
+		// Read the solution file
+		eFeasibleState _feasibility = _heuristic.isFeasible(_solPath);
+		switch(_feasibility) {
+			case FEASIBLE:
+				cout << "Solution is feasible" << endl;
+				break;
+			case NOT_FEASIBLE_DEMAND:
+				cout << "Solution is not feasible: demand not satisfied" << endl;
+				break;
+			case NOT_FEASIBLE_USERS:
+				cout << "Solution is not feasible: exceeded number of available users" << endl;
+				break;
+		}
+	}
+
 	return 0;
 }
