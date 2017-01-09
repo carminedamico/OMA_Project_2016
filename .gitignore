@@ -16,7 +16,7 @@
 *.la
 *.a
 *.lib
-*.exe
+#*.exe
 *.out
 *.app
 
@@ -32,7 +32,7 @@ CTestTestfile.cmake
 
 #ASSIGNEMENT
 
-Coiote_heuristic
+#Coiote_heuristic
 
 solved/solved.txt
 
