@@ -1,5 +1,6 @@
 #include <list>
 #include <iostream>
+#include <cstring>
 
 #include "utils.h"
 #include "heuristic.h"
