@@ -1,1 +1,0 @@
-FOR %%G IN (".\input\*") DO Coiote_heuristic.exe -i %%G -o .\output\summary.csv -s .\output\solved.txt
